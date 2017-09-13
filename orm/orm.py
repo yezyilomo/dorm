@@ -17,7 +17,7 @@ class orm(object):
    def configure_db(**data):
       """This is a method for configuring a database to be used,
          It generally accept three specified arguments which are
-         db_user, db_password, db_name and db_host, it's calles as
+         db_user, db_password, db_name and db_host, it's called as
          orm.configure_db( db_user='your_value',db_name='your_value',db_host='your_value',db_password='your_value' )
       """
 
@@ -58,7 +58,7 @@ class Table(object):
    @staticmethod
    def random_table():
       """This is not necessary, it's just a method which select a table name
-         randomly from a list of tables in the database used and return it as
+         randomly from a list of tables in a database used and return it as
          string
       """
 
@@ -119,7 +119,7 @@ class Table(object):
         """This is a method for getting a single specific record by using it's
            primary key(s), here the argument to this method is the dict which
            contains primary key(s) and it's/their corresponding value(s), the
-           for is as  { primary_key1: value1, primary_key2: value2, ...... }
+           format of argument is  { primary_key1: value1, primary_key2: value2, ...}
         """
         pk=Record()
         condition=pk.get_query_condition(pri_key_with_val)
