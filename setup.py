@@ -8,4 +8,9 @@ setup(
   author='Yezy Ilomo',
   author_email='yezileliilomo@hotmail.com',
   packages=['orm'],
+  install_requires=[
+          'flask-mysql',
+      ],
  )
+ 
+
