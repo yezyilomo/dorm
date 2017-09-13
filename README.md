@@ -4,7 +4,9 @@
   
 # How to use it?
   $ git clone https://github.com/yezyilomo/x_orm.git
+  
   $ cd x_orm
+  
   $ pip install .
   
   Then you can start using it in your flask application 
