@@ -70,15 +70,20 @@ class Table(object):
       rd=random.randint(0,len(all_tables)-1)
       return all_tables[rd][0]
 
-   def test(self):
-      """This is not necessary it's just a test method
+   def sql(self,statement):
+      """This is not necessary it's just a test method for executing sql statements
+         as they are without any abstraction
       """
-      command='show create table Student';
+      command=statement
       data=mysql.connect().cursor()
       data.execute(command)
-      all_tables=data.fetchall()
+      rec=data.fetchall()
       data.close()
-      return all_tables
+      if isinstance(rec, tuple) and not len(rec)==0:
+         records=self.get_objects(rec)
+         return custom_tuple(records)
+      else:
+         return "Query done!."
 
 
    def get_objects(self,rec):
