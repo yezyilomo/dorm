@@ -13,6 +13,10 @@ mysql.init_app(app)
 ##########################################################################
 
 def funct_maker(name):
+  """This is a method used to return objects of class tables, it allow user to
+     access database table through it's name
+  """
+
   def new_funct():
     return table(name)
   return new_funct
@@ -38,6 +42,9 @@ def configure(**data):
 
 
 class field(object):
+   """This is a class used to define database fields and their constrains
+   """
+
    def __init__(self,**data):
       self.model=""
       self.ref_field=""
@@ -66,7 +73,14 @@ class field(object):
 
 
 class model(object):
+   """This is a class which is used to define raw database, it's inherited by all
+      classes used for creating database
+   """
+
    def create(self):
+     """This is a method used to create table in a database
+     """
+
      create_statement="create table "+str(self.__class__.__name__)+"("
      command=""
      primary=""
@@ -92,6 +106,7 @@ class model(object):
 class table(object):
    """This is a class for defining a database table as object
    """
+
    def __init__(self,table_name):
      """This is a constructor method which takes table name as
         the argument and create an object from it
@@ -131,6 +146,7 @@ class table(object):
       """This is not necessary it's just a test method for executing sql statements
          as they are without any abstraction
       """
+
       data=mysql.connect().cursor()
       data.execute(statement)
       rec=data.fetchall()
@@ -180,6 +196,7 @@ class table(object):
            contains primary key(s) and it's/their corresponding value(s), the
            format of argument is  { primary_key1: value1, primary_key2: value2, ...}
         """
+
         pk=record()
         condition=pk.get_query_condition(pri_key_with_val)
         return self.where(condition)
@@ -242,12 +259,13 @@ class table(object):
       st=st[:len(st)-1]+")"
       return st
 
-   def create(self,**data):
+   def insert(self,**data):
       """This is a method which is used to insert records into a database, with
          specified arguments as colums and their corresponding values to insert
          into a database, It generally return a record which has been inserted
          into your database
       """
+
       command="insert into "+ str(self.table__name__) +" "+self.columns_to_insert(data)+ " values "+self.values_to_insert(data)
       conn=mysql.connect()
       cursor=conn.cursor()
@@ -320,6 +338,7 @@ class record(object):
       """This is the actual method for deleting a specific record
          in a database
       """
+
       condition=self.get_query_values(self.primary__keys__)
       command="delete from "+ str(self.table__name__)+" where "+ condition.replace(',',' and')
       conn=mysql.connect()
@@ -340,6 +359,7 @@ class custom_tuple(tuple):
       """This is a method helper for updating specific records with inputs to
          the database as specified arguments
       """
+
       for rec in self:
          rec.update(**data)
 
@@ -353,12 +373,14 @@ class custom_tuple(tuple):
    def count(self):
      """This is a method for counting records
      """
+
      return len(self)
 
    def ensure_one(self):
       """This is a method for ensuring that only one record is returned and not
          a tuple or custom_tuple of records
       """
+
       if len(self)==1:
         return self[0]
       else:
