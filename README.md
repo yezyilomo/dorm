@@ -1,8 +1,7 @@
 # x_orm
   This is a tool that lets you query and manipulate data from sql database using an object-oriented paradigm in flask framework
   
-  #Visit the down link for Flask framework installation guide
-  http://flask.pocoo.org/docs/0.12/installation/
+# Visit [here](http://flask.pocoo.org/docs/0.12/installation/) for Flask framework installation guide.
   
 # How to use it?
   $ git clone https://github.com/yezyilomo/x_orm.git
