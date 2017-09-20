@@ -2,15 +2,13 @@
 from setuptools import setup
 
 setup(
-  name='x_orm',
+  name='dorm',
   version='1.0',
   description='Database Object Relational Mapping tool',
   author='Yezy Ilomo',
   author_email='yezileliilomo@hotmail.com',
-  packages=['orm'],
-  install_requires=[
-          'flask-mysql',
-      ],
+  packages=['dorm'],
+  install_requires=[],
  )
  
 
