@@ -1,6 +1,7 @@
 from flask import Flask
 from flaskext.mysql import MySQL
 import random, collections
+from datetime import datetime
 
 ## Database configuration information ####################################
 app = Flask(__name__)
@@ -11,6 +12,9 @@ app.config['MYSQL_DATABASE_DB'] = None
 app.config['MYSQL_DATABASE_HOST'] = None
 mysql.init_app(app)
 ##########################################################################
+db__name__=None
+db__tables__=[]
+
 
 def funct_maker(name):
   """This is a method used to return objects of class tables, it allow user to
@@ -32,13 +36,111 @@ def configure(**data):
       app.config['MYSQL_DATABASE_PASSWORD'] = data['db_password']
       app.config['MYSQL_DATABASE_DB'] = data['db_name']
       app.config['MYSQL_DATABASE_HOST'] = data['db_host']
+      global db__name__
+      db__name__ =  data['db_name']
 
       data=mysql.connect().cursor()
       data.execute("show tables")
       all_tables=data.fetchall()
       data.close()
+      global db__tables__
       for table_name in all_tables:
          globals().update({ table_name[0] : funct_maker(table_name[0]) })
+         db__tables__.append(table_name[0])
+
+
+def sql(statement,table_name):
+      """This is not necessary it's just a test method for executing sql statements
+         as they are without any abstraction
+      """
+
+      data=mysql.connect().cursor()
+      data.execute(statement)
+      rec=data.fetchall()
+      data.close()
+      if isinstance(rec, tuple) and not len(rec)==0:
+         table=globals()[table_name]()
+         records=get_objects(rec,table)
+         return { 'records':custom_tuple(records,), 'table':table  }
+      else:
+         return "Query done!."
+
+def drop(table):
+      """This is a method which is used in droping database tables with the arguments
+         as a table name to be dropped
+      """
+      command="drop table "+table
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
+
+def create_db(db_name):
+      """This is a method which is used to create database with the arguments
+         as database name to be created
+      """
+
+      command="create database "+db_name
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
+
+def drop_db(db_name):
+      """This is a method which is used in droping database with the arguments
+         as database name to be dropped
+      """
+
+      command="drop database "+db_name
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
+
+
+def get_objects(rec,table):
+      """This is the actual method which convert records extracted form a
+         database into objects, it generally create those objects from class
+         record and assign them attributes corresponding to columns and their
+         values as extracted from the database, It returns a normal tuple
+         containing record objects
+      """
+
+      ls=[]
+      for r in rec:
+         ob=record(table)
+         for col, value in zip(ob.table__columns__.keys(), r):
+            setattr(ob,str(col),str(value))
+         ls.append(ob)
+      return tuple(ls)
+
+
+def get_query_condition(data):
+      """This method format a condition to be used in db query
+         during database update, it generally return a formated
+         string with a condition to be used after where clause in
+         db query
+      """
+
+      st=""
+      for key in data:
+           if isinstance(data[key],str):
+              st=st+" "+key+"='"+str(data[key])+"',"
+           else:
+              st=st+" "+key+"="+str(data[key])+","
+      return str(st[:len(st)-1])
+
+
+def random_table():
+      """This is not necessary, it's just a method which select a table name
+         randomly from a list of tables in a database used and return it as
+         string
+      """
+
+      command="show tables"
+      data=mysql.connect().cursor()
+      data.execute(command)
+      all_tables=data.fetchall()
+      data.close()
+      rd=random.randint(0,len(all_tables)-1)
+      return all_tables[rd][0]
 
 
 class field(object):
@@ -78,7 +180,7 @@ class model(object):
    """
 
    def create(self):
-     """This is a method used to create table in a database
+     """This is a method used to create database tables
      """
 
      create_statement="create table "+str(self.__class__.__name__)+"("
@@ -127,57 +229,6 @@ class table(object):
      for key in keys:
         self.primary__keys__.update({str(key[4]): str(self.table__columns__[key[4]])})
 
-   @staticmethod
-   def random_table():
-      """This is not necessary, it's just a method which select a table name
-         randomly from a list of tables in a database used and return it as
-         string
-      """
-
-      command="show tables"
-      data=mysql.connect().cursor()
-      data.execute(command)
-      all_tables=data.fetchall()
-      data.close()
-      rd=random.randint(0,len(all_tables)-1)
-      return all_tables[rd][0]
-
-   def sql(self,statement):
-      """This is not necessary it's just a test method for executing sql statements
-         as they are without any abstraction
-      """
-
-      data=mysql.connect().cursor()
-      data.execute(statement)
-      rec=data.fetchall()
-      data.close()
-      if isinstance(rec, tuple) and not len(rec)==0:
-         records=self.get_objects(rec)
-         return custom_tuple(records)
-      else:
-         return "Query done!."
-
-
-   def get_objects(self,rec):
-      """This is the actual method which convert records extracted form a
-         database into objects, it generally create those objects from class
-         record and assign them attributes corresponding to columns and their
-         values as extracted from the database, It returns a normal tuple
-         containing record objects
-      """
-
-      ls=[]
-      for r in rec:
-         ob=record()
-         ob.table__name__=self.table__name__
-         ob.table__columns__=self.table__columns__
-         ob.primary__keys__=self.primary__keys__
-         i=0
-         for col in self.table__columns__:
-            setattr(ob,str(col),str(r[i]))
-            i=i+1;
-         ls.append(ob)
-      return tuple(ls)
 
    def get(self):
          """This is a method which returns all records from a database as
@@ -188,7 +239,7 @@ class table(object):
          data.execute("select * from "+str(self.table__name__))
          rec=data.fetchall()
          data.close()
-         return custom_tuple(self.get_objects(rec))
+         return custom_tuple(get_objects(rec,self))
 
    def get_one(self,pri_key_with_val):
         """This is a method for getting a single specific record by using it's
@@ -197,8 +248,8 @@ class table(object):
            format of argument is  { primary_key1: value1, primary_key2: value2, ...}
         """
 
-        pk=record()
-        condition=pk.get_query_condition(pri_key_with_val)
+        pk=record(self)
+        condition=get_query_condition(pri_key_with_val)
         return self.where(condition)
 
 
@@ -217,13 +268,13 @@ class table(object):
          if len(data)==3:
             col,expr,val=data[0],data[1],data[2]
             if isinstance(val,str):
-              command="select * from "+str(self.table__name__)+" where "+str(col)+" "+str(expr)+" "+"'"+val+"'"
+              command=''.join(["select * from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ","'",val,"'"])
             else:
-              command="select * from "+str(self.table__name__)+" where "+str(col)+" "+str(expr)+" "+str(val)
+              command=''.join(["select * from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ",str(val)])
 
          elif len(data)==1 :
             cond=data[0]
-            command="select * from "+str(self.table__name__)+" where "+cond
+            command=''.join(["select * from ",str(self.table__name__)," where ",cond])
          else:
             raise Exception("Invalid agruments")
 
@@ -231,7 +282,7 @@ class table(object):
          data.execute(command)
          data.close()
          rec=data.fetchall()
-         return custom_tuple( self.get_objects(rec) )
+         return custom_tuple( get_objects(rec,self) )
 
 
    def columns_to_insert(self,data):
@@ -251,32 +302,136 @@ class table(object):
       """
 
       st="("
-      for val in data:
-         if "char" in self.table__columns__[val] or "text" in self.table__columns__[val] or "date" in self.table__columns__[val] or "time" in self.table__columns__[val]:
-            st=st+"'"+data[val]+"',"
-         else :
-            st=st+str(data[val])+","
+      if isinstance(data, dict):
+          for val in data:
+             if "char" in self.table__columns__[val] or "text" in self.table__columns__[val] or "date" in self.table__columns__[val] or "time" in self.table__columns__[val]:
+
+                st=st+"'"+data[val]+"',"
+             else :
+                st=st+str(data[val])+","
+      elif isinstance(data, tuple):
+          i=0
+          for val in data:
+             col_type=list(self.table__columns__.values())[i]
+             if "char" in col_type or "text" in col_type or "date" in col_type or "time" in col_type:
+
+                st=st+"'"+val+"',"
+             else :
+                st=st+str(val)+","
+             i=i+1
+
       st=st[:len(st)-1]+")"
       return st
 
-   def insert(self,**data):
+   def insert(self,*values,**data):
       """This is a method which is used to insert records into a database, with
          specified arguments as colums and their corresponding values to insert
          into a database, It generally return a record which has been inserted
          into your database
       """
 
-      command="insert into "+ str(self.table__name__) +" "+self.columns_to_insert(data)+ " values "+self.values_to_insert(data)
+      if len(values)==0 and len(data) > 0:
+         command="insert into "+ str(self.table__name__) +" "+self.columns_to_insert(data)+ " values "+self.values_to_insert(data)
+      elif  len(data)==0 and len(values) == len(self.table__columns__):
+         command="insert into "+ str(self.table__name__) + " values "+self.values_to_insert(values)
+         print(command)
+      else:
+         raise Exception("Invalid arguments to 'insert' function")
+
       conn=mysql.connect()
       cursor=conn.cursor()
       cursor.execute(command)
       conn.commit()
       conn.close()
       cursor.close()
+
       pri_key_with_val=collections.OrderedDict()
-      for prk in self.primary__keys__:
-         pri_key_with_val.update({prk:data[prk]})
+      if len(values)==0 and len(data) > 0:
+           for prk in self.primary__keys__:
+              pri_key_with_val.update({prk:data[prk]})
+
+      else:
+          for prk in self.primary__keys__:
+             position=list(self.table__columns__.keys()).index(prk)
+             pri_key_with_val.update({prk:values[position]})
+
       return self.get_one(pri_key_with_val)
+
+
+   def join(self,table2,join_type='inner'):
+     """This is a method which is used in joining database tables with first
+        arguments as table to join to, and second argument as join type which
+        is inner by default
+     """
+     table1=self
+     table2=table(table2)
+     whole_table=joined_tables(join_type,table1,table2)
+     return whole_table
+
+
+class joined_tables(object):
+    """This is a class which defines a table formed as a result of joining two
+       tables
+    """
+
+    def __init__(self,join_type, table1, table2):
+      """This is a constructor which initializes a table with important parameters
+      """
+
+      self.table__name__=table1.table__name__+"_and_"+table2.table__name__
+      self.tables__=[table1.table__name__,table2.table__name__]
+      self.join__type__=join_type
+
+      lst1=[ ( table1.table__name__+'_'+key,  table1.table__columns__[key] ) for  key  in  table1.table__columns__ ]
+      lst2=[ ( table2.table__name__+'_'+key,  table2.table__columns__[key] ) for  key  in  table2.table__columns__ ]
+      col_lst=lst1+lst2
+
+      primary1=[ ( table1.table__name__+'_'+key,  table1.primary__keys__[key] ) for  key  in  table1.primary__keys__ ]
+      primary2=[ ( table2.table__name__+'_'+key,  table2.primary__keys__[key] ) for  key  in  table2.primary__keys__ ]
+      primary_lst=primary1+primary2
+
+      self.table__columns__=collections.OrderedDict(col_lst)
+      self.primary__keys__=collections.OrderedDict(primary_lst)
+
+
+    def on(self,*data):
+      """This is a method which do the actual joining and return recods according
+         to the conditions specified in a join
+      """
+      if len(data)==3:
+        col1, op, col2=data[0], data[0], data[0]
+        command="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +col1+ op + col2
+      elif len(data)==1:
+        command="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +data[0]
+      else:
+        raise Exception("Invalid arguments")
+      data=mysql.connect().cursor()
+      data.execute(command)
+      rec=data.fetchall()
+      data.close()
+      return { 'records': custom_tuple(get_objects(rec,self)), 'table':self  }
+
+    def onwhere(self,on_cond,*data):
+         """This is a method which is used to query and return records from a table
+            arose as a result of joining two tables, with arguments as 'ON' condition and
+            'WHERE' condition
+         """
+
+         command=""
+         if len(data)==3:
+            col,expr,val=data[0],data[1],data[2]
+            command="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+ " where "+str(col)+" "+str(expr)+" "+str(val)
+         elif len(data)==1:
+            cond=data[0]
+            command="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+" where "+cond
+         else:
+            raise Exception("Invalid agruments")
+
+         data=mysql.connect().cursor()
+         data.execute(command)
+         data.close()
+         rec=data.fetchall()
+         return { 'records': custom_tuple(get_objects(rec,self)), 'table':self  }
 
 
 class record(object):
@@ -284,6 +439,15 @@ class record(object):
       It generally produce objects which corresponds to
       records extracted from a database
    """
+
+   def __init__(self, table):
+      """This is a constructor which initializes record object with import parameters
+         from table object which is passed as the argument to it
+      """
+
+      self.table__name__=table.table__name__
+      self.table__columns__=table.table__columns__
+      self.primary__keys__=table.primary__keys__
 
    def get_query_values(self, data):
       """This method format values to be filled to a database
@@ -300,21 +464,6 @@ class record(object):
               st=st+" "+key+"="+str(val)+","
       return str(st[:len(st)-1])
 
-   def get_query_condition(self, data):
-      """This method format a condition to be used in db query
-         during database update, it generally return a formated
-         string with a condition to be used after where clause in
-         db query
-      """
-
-      st=""
-      for key in data:
-           if isinstance(data[key],str):
-              st=st+" "+key+"='"+str(data[key])+"',"
-           else:
-              st=st+" "+key+"="+str(data[key])+","
-      return str(st[:len(st)-1])
-
 
    def update(self, **data):
       """This is the actual method for updating a specific record
@@ -322,9 +471,8 @@ class record(object):
          values for the record
       """
 
-      values=self.get_query_condition(data)
+      values=get_query_condition(data)
       condition=self.get_query_values(self.primary__keys__)
-
       command="update "+ str(self.table__name__)+" set "+values+" where "+ condition.replace(',',' and')
       conn=mysql.connect()
       cursor=conn.cursor()
@@ -373,7 +521,6 @@ class custom_tuple(tuple):
    def count(self):
      """This is a method for counting records
      """
-
      return len(self)
 
    def ensure_one(self):
