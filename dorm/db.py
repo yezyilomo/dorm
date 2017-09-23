@@ -12,6 +12,9 @@ app.config['MYSQL_DATABASE_DB'] = None
 app.config['MYSQL_DATABASE_HOST'] = None
 mysql.init_app(app)
 ##########################################################################
+db__name__=None
+db__tables__=[]
+
 
 def funct_maker(name):
   """This is a method used to return objects of class tables, it allow user to
@@ -33,13 +36,17 @@ def configure(**data):
       app.config['MYSQL_DATABASE_PASSWORD'] = data['db_password']
       app.config['MYSQL_DATABASE_DB'] = data['db_name']
       app.config['MYSQL_DATABASE_HOST'] = data['db_host']
+      global db__name__
+      db__name__ =  data['db_name']
 
       data=mysql.connect().cursor()
       data.execute("show tables")
       all_tables=data.fetchall()
       data.close()
+      global db__tables__
       for table_name in all_tables:
          globals().update({ table_name[0] : funct_maker(table_name[0]) })
+         db__tables__.append(table_name[0])
 
 
 def sql(statement,table_name):
@@ -57,6 +64,35 @@ def sql(statement,table_name):
          return { 'records':custom_tuple(records,), 'table':table  }
       else:
          return "Query done!."
+
+def drop(table):
+      """This is a method which is used in droping database tables with the arguments
+         as a table name to be dropped
+      """
+      command="drop table "+table
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
+
+def create_db(db_name):
+      """This is a method which is used to create database with the arguments
+         as database name to be created
+      """
+
+      command="create database "+db_name
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
+
+def drop_db(db_name):
+      """This is a method which is used in droping database with the arguments
+         as database name to be dropped
+      """
+
+      command="drop database "+db_name
+      data=mysql.connect().cursor()
+      data.execute(command)
+      data.close()
 
 
 def get_objects(rec,table):
@@ -144,7 +180,7 @@ class model(object):
    """
 
    def create(self):
-     """This is a method used to create table in a database
+     """This is a method used to create database tables
      """
 
      create_statement="create table "+str(self.__class__.__name__)+"("
@@ -323,6 +359,10 @@ class table(object):
 
 
    def join(self,table2,join_type='inner'):
+     """This is a method which is used in joining database tables with first
+        arguments as table to join to, and second argument as join type which
+        is inner by default
+     """
      table1=self
      table2=table(table2)
      whole_table=joined_tables(join_type,table1,table2)
@@ -330,12 +370,12 @@ class table(object):
 
 
 class joined_tables(object):
-    """This is a class which define a tables formed as a result of joining two
+    """This is a class which defines a table formed as a result of joining two
        tables
     """
 
     def __init__(self,join_type, table1, table2):
-      """This is a constructor which initializes a table with important variables
+      """This is a constructor which initializes a table with important parameters
       """
 
       self.table__name__=table1.table__name__+"_and_"+table2.table__name__
@@ -372,14 +412,9 @@ class joined_tables(object):
       return { 'records': custom_tuple(get_objects(rec,self)), 'table':self  }
 
     def onwhere(self,on_cond,*data):
-         """This is a method which is used to query and return records from a
-            database as a custom tuple of objects of record, the criteria used
-            to query records is specified as argument(s), This method accept two
-            forms of arguments, the first form is three specified arguments which
-            form a query condition eg  where("age", ">", 20),
-            and the second form is a single argument which specify a query condition
-            eg in the first example we could obtain the same result by using
-            where("age > 20")
+         """This is a method which is used to query and return records from a table
+            arose as a result of joining two tables, with arguments as 'ON' condition and
+            'WHERE' condition
          """
 
          command=""
@@ -392,14 +427,11 @@ class joined_tables(object):
          else:
             raise Exception("Invalid agruments")
 
-         print(command)
          data=mysql.connect().cursor()
          data.execute(command)
-
          data.close()
          rec=data.fetchall()
          return { 'records': custom_tuple(get_objects(rec,self)), 'table':self  }
-
 
 
 class record(object):
@@ -409,6 +441,10 @@ class record(object):
    """
 
    def __init__(self, table):
+      """This is a constructor which initializes record object with import parameters
+         from table object which is passed as the argument to it
+      """
+
       self.table__name__=table.table__name__
       self.table__columns__=table.table__columns__
       self.primary__keys__=table.primary__keys__
@@ -437,7 +473,6 @@ class record(object):
 
       values=get_query_condition(data)
       condition=self.get_query_values(self.primary__keys__)
-
       command="update "+ str(self.table__name__)+" set "+values+" where "+ condition.replace(',',' and')
       conn=mysql.connect()
       cursor=conn.cursor()
