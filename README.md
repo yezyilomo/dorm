@@ -6,7 +6,7 @@
 
   $ cd dorm
 
-  $ pip install
+  $ pip install .
 
   Then you can start using it in your flask application
 
