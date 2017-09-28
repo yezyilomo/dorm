@@ -1,6 +1,6 @@
 from flask import Flask
 from flaskext.mysql import MySQL
-import random, collections
+import random, collections, sha3
 from datetime import datetime
 
 ## Database configuration information ####################################
@@ -50,6 +50,18 @@ def configure(**data):
          db__tables__.append(table_name[0])
 
 
+
+def hash(string):
+     """This is a method which is used to hash information(eg passwords) for
+        privacy purpose, it uses sha3 to hash and add some characters to the
+        hashed string for increasing security
+     """
+
+     hashed=sha3.sha3_512(string).hexdigest().decode("utf-8")
+     additional_security="^dorm@ilo@yezy^#$%!flaskapp^"
+     return hashed+additional_security
+
+
 def sql(statement,table_name):
       """This is not necessary it's just a test method for executing sql statements
          as they are without any abstraction
@@ -83,6 +95,27 @@ def drop_tb_without_foreign_key_check(table):
       cursor=mysql.connect().cursor()
       cursor.execute(sql_statement)
       cursor.close()
+
+def truncate_tb_with_foreign_key_check(table):
+      """This is a method which is used in truncating database tables with the argument
+         as a table name to be truncated
+      """
+
+      sql_statement="truncate table "+ table
+      cursor=mysql.connect().cursor()
+      cursor.execute(sql_statement)
+      cursor.close()
+
+def truncate_tb_without_foreign_key_check(table):
+      """This is a method which is used in truncating database tables with the argument
+         as a table name to be truncated
+      """
+
+      sql_statement="SET FOREIGN_KEY_CHECKS = 0; truncate table "+ table+ " ; SET FOREIGN_KEY_CHECKS = 1;"
+      cursor=mysql.connect().cursor()
+      cursor.execute(sql_statement)
+      cursor.close()
+
 
 def create_db(db_name):
       """This is a method which is used to create database with the argument
@@ -268,16 +301,21 @@ class table(object):
 
          return custom_tuple_write(get_objects(raw_records,self))
 
-   def get_one(self,pri_key_with_val):
-        """This is a method for getting a single specific record by using it's
+   def find(self,**pri_key_with_val):
+        """This is a method for finding a single specific record by using it's
            primary key(s), here the argument to this method is the dict which
            contains primary key(s) and it's/their corresponding value(s), the
            format of argument is  { primary_key1: value1, primary_key2: value2, ...}
         """
 
-        pk=record(self)
         condition=get_query_condition(pri_key_with_val)
-        return self.where(condition)
+        record=self.where(condition)
+        if len(record)>1:
+          raise Exception("You hava passed non-primary key argument(s)")
+        elif len(record)==0:
+          return None
+        else:
+          return record[0]
 
 
    def where(self,*data):
@@ -384,7 +422,7 @@ class table(object):
              position=list(self.table__columns__.keys()).index(prk)
              pri_key_with_val.update({prk:values[position]})
 
-      return self.get_one(pri_key_with_val)
+      return self.find(**pri_key_with_val)
 
 
    def join(self,table2,join_type='inner'):
@@ -424,8 +462,8 @@ class joined_tables(object):
 
 
     def on(self,*data):
-      """This is a method which do the actual joining and return recods according
-         to the conditions specified in a join
+      """This is a method which does the actual joining and return records according
+         to the conditions specified in join condition
       """
       if len(data)==3:
         col1, op, col2=data[0], data[0], data[0]

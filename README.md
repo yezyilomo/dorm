@@ -2,13 +2,15 @@
   This is a tool that lets you query and manipulate data from sql database using an object-oriented paradigm in flask framework
 
 # How to use it?
-  $ git clone https://github.com/yezyilomo/dorm.git
+  $ pip3 install dorm
 
-  $ cd dorm
+  Then you can start using it in your flask application,
 
-  $ pip install .
+  Note: dorm depend on (flask, ilo, flask-mysql, sha3), thus installing it
 
-  Then you can start using it in your flask application
+  will install all these dependencies automatically if you don't have them in
+
+  your system
 
   For those who want to contribute codes are available at dorm/dorm/db.py
 
@@ -17,226 +19,258 @@
 
 
 
-
 # DORM API DOCUMENTATION
-  This is a simple user documentation, illustrating how to use dorm tool, dorm API provides the following methods for data manipulations
 
-  1.configure(**data):
+This is a simple user documentation, illustrating how to use dorm tool, dorm API provides the following methods for data manipulations
 
-        This is a static method for configuring a database to be used,
+1.configure(**data):
 
-        It generally accept three specified arguments which are
+      This is a static method for configuring a database to be used,
 
-        db_user, db_password, db_name and db_host, it's called as
+      It generally accept three specified arguments which are
 
-        db.configure( db_user='your_value',db_name='your_value',db_host='your_value',db_password='your_value' )
+      db_user, db_password, db_name and db_host, it's called as
 
-        and it has to be called at the beginning of config.py file
+      db.configure( db_user='your_value',db_name='your_value',db_host='your_value',db_password='your_value' )
 
+      and it has to be called at the beginning of config.py file
 
-  2.get():
 
-        This is a method which returns all records from a database as
+2.get(col_name):
 
-        a tuple of objects of records, it takes no arguments and it's called as
+      This is a method which returns all records from a database as
 
-        db.table_name().get()
+      a tuple of objects of records if it takes no arguments, but if it's
 
+      given a string argument it return a tuple of values in a specified column
 
-  3.where(*data):
+      name(argument), and it's called as
 
-        This is a method which is used to query and return records from a
+      db.table_name().get()   or
 
-        database as a tuple of objects of records, the criteria used
+      db.table_name().get(col_name)   or
 
-        to query records is specified as argument(s), This method accept two
+      db.table_name().where('condition').get('col_name')  
 
-        forms of arguments, the first form is three specified arguments which
 
-        form a query condition
+3.where(*data):
 
-        eg  db.table_name().where('age', '>', 20)
+      This is a method which is used to query and return records from a
 
-        and the second form is a single argument which specify a query condition
+      database as a tuple of objects of records, the criteria used
 
-        for instance in the first example we could obtain the same result by using
+      to query records is specified as argument(s), This method accept two
 
-        db.table_name().where('age > 20')    
+      forms of arguments, the first form is three specified arguments which
 
+      form a query condition
 
-  4.insert(**data):
+      eg  db.table_name().where('age', '>', 20)
 
-        This is a method which is used to insert records into a database, with
+      and the second form is a single argument which specify a query condition
 
-        specified arguments as columns and their corresponding values to insert
+      for instance in the first example we could obtain the same result by using
 
-        into a database, it also accept values if record insertions involve all
+      db.table_name().where('age > 20')    
 
-        columns It generally return a record which has been inserted
 
-        into your database, it can be called as
+4.insert(**data):
 
-        db.table_name().insert(Reg_No='2018-04-003', Name='Yezy Ilomo', Age=22)  or
+      This is a method which is used to insert records into a database, with
 
-        db.table_name().insert(2018-04-003', Yezy Ilomo',22)
+      specified arguments as columns and their corresponding values to insert
 
+      into a database, it also accept values if record insertions involve all
 
-  5.update(**data):
+      columns It generally return a record which has been inserted
 
-        This is a method for updating records in a database with arguments
+      into your database, it can be called as
 
-        as columns and their corresponding values for the record, it's called as
+      db.table_name().insert(Reg_No='2018-04-003', Name='Yezy Ilomo', Age=22)  or
 
-        db.table_name().where('age', '>', 20).update(Category="Adult")
+      db.table_name().insert(2018-04-003', Yezy Ilomo',22)
 
-        this will update Category field for all records in Student table where age
 
-        is greater than 20 with "Adult" value,
+5.update(**data):
 
-        You can also update all records regardless of any condition in your table as
+      This is a method for updating records in a database with arguments
 
-        db.table_name().get().update(Category="Adult")
+      as columns and their corresponding values for the record, it's called as
 
+      db.table_name().where('age', '>', 20).update(Category="Adult")
 
-  6.delete():      
+      this will update Category field for all records in Student table where age
 
-        This is a method for deleting records in a database, it takes no arguments
+      is greater than 20 with "Adult" value,
 
-        it can be used to delete all records in your table as
+      You can also update all records regardless of any condition in your table as
 
-        db.table_name().get().delete()
+      db.table_name().get().update(Category="Adult")
 
-        and if you want to delete records basing on a specific condition you can
 
-        also use it with where() clause as
+6.delete():      
 
-        db.table_name().where('age', '>', 20).delete()  or as
+      This is a method for deleting records in a database, it takes no arguments
 
-        db.table_name().where('age > 20').delete()
+      it can be used to delete all records in your table as
 
+      db.table_name().get().delete()
 
-  7.ensure_one():
+      and if you want to delete records basing on a specific condition you can
 
-        This is a method which returns a single record object which you can access
+      also use it with where() clause as
 
-        its attributes(record values ) by using dot operator on this function with
+      db.table_name().where('age', '>', 20).delete()  or as
 
-        the name of column that you want to access its value, The method will return
+      db.table_name().where('age > 20').delete()
 
-        None if it's applied to a tuple which contains more than one record, and it's
 
-        called as
+7.ensure_one():
 
-        db.table_name().where('Reg_No = "2015-05-033"').ensure_one()
+      This is a method which returns a single record object which you can access
 
-        on this object you can access record fields as
+      its attributes(record values ) by using dot operator on this function with
 
-        db.table_name().where('Reg_No = "2015-05-033"').ensure_one().Reg_No or
+      the name of column that you want to access its value, The method will return
 
-        db.table_name().where('Reg_No = "2015-05-033"').ensure_one().name   or
+      None if it's applied to a tuple which contains more than one record, and it's
 
-        db.table_name().where('Reg_No = "2015-05-033"').ensure_one().Course  etc.
+      called as
 
-  8.sql(query, table):
+      db.table_name().where('Reg_No = "2015-05-033"').ensure_one()
 
-        This is a method which allows you to execute normal SQL statements without
+      on this object you can access record fields as
 
-        abstraction, this is used in case you want to do operation that is not supported
+      db.table_name().where('Reg_No = "2015-05-033"').ensure_one().Reg_No or
 
-        by the API. This method accept two arguments which are, the sql statement
+      db.table_name().where('Reg_No = "2015-05-033"').ensure_one().name   or
 
-        to be executed and table name involved in a query, and it's called as
+      db.table_name().where('Reg_No = "2015-05-033"').ensure_one().Course  etc.
 
-        db.sql('your sql statement', 'table_name')
+8.sql(query, table):
 
-        for example db.sql('select * from Student where age>18', 'Student')
+      This is a method which allows you to execute normal SQL statements without
 
-        Note table_name should be equal to the one in your query statement
+      abstraction, this is used in case you want to do operation that is not supported
 
-  9.create():
+      by the API. This method accept two arguments which are, the sql statement
 
-        This is a method which is used in creating database tables, it's an instance
+      to be executed and table name involved in a query, and it's called as
 
-        method of class which defines a table, all classes which defines tables are
+      db.sql('your sql statement', 'table_name')
 
-        placed in 'database/raw_db.py' file, for example a class defining a table Student
+      for example db.sql('select * from Student where age>18', 'Student')
 
-        might look like
+      Note table_name should be equal to the one in your query statement
 
-        class Student(db.model):
+9.create():
 
-            reg_No=db.field(type="char(10)",constrain="not null",key="primary")
+      This is a method which is used in creating database tables, it's an instance
 
-            full_name=db.field(type="char(30)",constrain="not null")
+      method of class which defines a table, all classes which defines tables are
 
-            age=db.field(type="int")
+      placed in 'database/raw_db.py' file, for example a class defining a table Student
 
-            course=db.field(type="char(20)", constrain="not null")
+      might look like
 
-            year_of_study=db.field(type="int", constrain="not null")
+      class Student(db.model):
 
+          reg_No=db.field(type="char(10)",constrain="not null",key="primary")
 
-        a corresponding table from above class can be created by instantiating
+          full_name=db.field(type="char(30)",constrain="not null")
 
-        an object of Student class and calling a method 'create' in 'run' method as
+          age=db.field(type="int")
 
-        def run():
+          course=db.field(type="char(20)", constrain="not null")
 
-           Student().create()
+          year_of_study=db.field(type="int", constrain="not null")
 
-  10.join(table,join_type):
 
-        This is a method which is used in joining database tables with first
+      a corresponding table from above class can be created by instantiating
 
-        arguments as table to join to, and second argument as join type which
+      an object of Student class and calling a method 'create' in 'run' method as
 
-        is inner by default, this method return an object of joined table and
+      def run():
 
-        it's called as
+         Student().create()
 
-        db.table1_name().join(table2,'your_join_type')
+10.join(table,join_type):
 
-  11.onwhere(on_condition, where_condition):
+      This is a method which is used in joining database tables with first
 
-        This is a method which is used to query and return records from a table
+      arguments as table to join to, and second argument as join type which
 
-        arose as a result of joining two tables, with arguments as 'ON' condition and
+      is inner by default, this method return an object of joined table and
 
-        'WHERE' condition, it returns a tuple of objects of record
+      it's called as
 
+      db.table1_name().join(table2,'your_join_type')
 
-  # Table and Joined Table attributes
+11.on(*on_condition):
 
-        A table has several attributes which might help in data manipulation which are
+      This is a method which does the actual joining and return records according
 
-        1. table__columns__ this store all table columns and their corresponding data types
+      to the conditions specified in join condition, it accept two form of arguments,
 
-           as a dictionary in form of { column_name: data_type }
+      the first form is a three arguments which form the join condition eg
 
-           You can access table__columns__ attribute as
+      db.table1().join(table2).on('table1.id','=','table2.id')
 
-           db.table_name().table__columns__
+      and the second form is a single string which Specify the whole condition eg
 
+      db.table1().join(table2).on('table1.id = table2.id')
 
-        2. table__name__  this store table name as a string
+12.onwhere(on_condition, where_condition):
 
-           You can access it as
+      This is a method which is used to query and return records from a table
 
-           db.table_name().table__columns__
+      arose as a result of joining two tables, with arguments as 'ON' condition and
 
+      'WHERE' condition, it returns a tuple of objects of record
 
-        3. primary__keys__ this store table primary keys and their corresponding data types
+13.hash(string):
 
-           as a dictionary inform of  { primary_key_name: data_type }
+      This is a method which is used to hash information(eg passwords) for
 
-           You can access primary__keys__  attribute as
+      privacy purpose, it uses sha3 to hash and add some characters to the
 
-           db.table_name().primary__keys__
+      hashed string for increasing security, it takes a string arguments to
 
-  # Record attributes
+      be hashed and it returns hashed string
 
-        Record has all attributes that table has(mentioned above), in addition to that
 
-        Record has data attributes corresponding to each record field name(column name)
+# Table and Joined Table attributes
 
-        these data attributes are used to access record fields from record object      
+      A table has several attributes which might help in data manipulation which are
+
+      1. table__columns__ this store all table columns and their corresponding data types
+
+         as a dictionary in form of { column_name: data_type }
+
+         You can access table__columns__ attribute as
+
+         db.table_name().table__columns__
+
+
+      2. table__name__  this store table name as a string
+
+         You can access it as
+
+         db.table_name().table__columns__
+
+
+      3. primary__keys__ this store table primary keys and their corresponding data types
+
+         as a dictionary inform of  { primary_key_name: data_type }
+
+         You can access primary__keys__  attribute as
+
+         db.table_name().primary__keys__
+
+# Record attributes
+
+      Record has all attributes that table has(mentioned above), in addition to that
+
+      Record has data attributes corresponding to each record field name(column name)
+
+      these data attributes are used to access record fields from record object      
