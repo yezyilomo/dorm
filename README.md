@@ -10,7 +10,7 @@
 
   will install all these dependencies automatically if you don't have them in
 
-  your system
+  your system.
 
   For those who want to contribute codes are available at dorm/dorm/db.py
 
