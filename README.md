@@ -1,5 +1,5 @@
-# Decent Object-Relational Mapping(DORM)
-  This is a tool that lets you query and manipulate data from sql database using an object-oriented paradigm in flask framework
+# Decent Object-Relational Mapper(DORM)
+  This is a tool that lets you query, insert, update, create, delete and manipulate data from SQL database using object-oriented paradigm in flask web framework
 
 # How to use it?
   $ pip3 install dorm
@@ -16,7 +16,6 @@
 
 # Resources
   [Flask framework official documentation](http://flask.pocoo.org/)
-
 
 
 # DORM API DOCUMENTATION
