@@ -2,7 +2,7 @@ from flask import Flask
 from flaskext.mysql import MySQL
 import random, collections, sha3
 
-## Database configuration information ####################################
+## Database configuration information ###################################
 app = Flask(__name__)
 mysql = MySQL()
 app.config['MYSQL_DATABASE_USER'] = None
@@ -10,7 +10,7 @@ app.config['MYSQL_DATABASE_PASSWORD'] = None
 app.config['MYSQL_DATABASE_DB'] = None
 app.config['MYSQL_DATABASE_HOST'] = None
 mysql.init_app(app)
-##########################################################################
+#########################################################################
 db__name__=None
 db__tables__=[]
 
