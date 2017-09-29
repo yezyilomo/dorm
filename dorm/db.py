@@ -1,6 +1,8 @@
 from flask import Flask
 from flaskext.mysql import MySQL
-import random, collections, sha3
+import random
+import collections
+import sha3
 
 ## Database configuration information ###################################
 app = Flask(__name__)
@@ -16,20 +18,20 @@ db__tables__=[]
 
 
 def execute(sql_statement):
-     """This is a method for executing sql statements given as argument
+     """This is a method for executing sql statements given as string argument
      """
-     conn=mysql.connect()
-     cursor=conn.cursor()
+     connection=mysql.connect()
+     cursor=connection.cursor()
      cursor.execute(sql_statement)
-     conn.commit()
+     connection.commit()
      records=cursor.fetchall()
-     conn.close()
+     connection.close()
      cursor.close()
      return records
 
 def functions_maker(name):
      """This is a method used to return objects of class table, it allow users to
-        access database table through it's name
+        access database tables through their names
      """
      def new_function():
        return table(name)
@@ -56,60 +58,60 @@ def configure(**data):
 
 def hash(string):
      """This is a method which is used to hash information(eg passwords) for
-        privacy purpose, it uses sha3 to hash and add some characters to the
-        hashed string for increasing security
+        security purpose, it uses sha3 algorithm to hash, and  it adds some characters
+        to hashed string for increasing security
      """
      hashed=sha3.sha3_512(string).hexdigest().decode("utf-8")
      additional_security="^dorm@ilo@yezy^#$%!flaskapp^"
      return hashed+additional_security
 
 def drop_tb_with_foreign_key_check(table):
-      """This is a method which is used in droping database tables with the argument
+      """This is a method which is used in droping database tables with argument
          as a table name to be dropped
       """
       sql_statement="drop table "+table
       execute(sql_statement)
 
 def drop_tb_without_foreign_key_check(table):
-      """This is a method which is used in droping database tables with the argument
+      """This is a method which is used in droping database tables with argument
          as a table name to be dropped
       """
       sql_statement="SET FOREIGN_KEY_CHECKS = 0; drop table if exists "+ table +" ; SET FOREIGN_KEY_CHECKS = 1;"
       execute(sql_statement)
 
 def truncate_tb_with_foreign_key_check(table):
-      """This is a method which is used in truncating database tables with the argument
+      """This is a method which is used in truncating database tables with argument
          as a table name to be truncated
       """
       sql_statement="truncate table "+ table
       execute(sql_statement)
 
 def truncate_tb_without_foreign_key_check(table):
-      """This is a method which is used in truncating database tables with the argument
+      """This is a method which is used in truncating database tables with argument
          as a table name to be truncated
       """
       sql_statement="SET FOREIGN_KEY_CHECKS = 0; truncate table "+ table+ " ; SET FOREIGN_KEY_CHECKS = 1;"
       execute(sql_statement)
 
 def create_db(db_name):
-      """This is a method which is used to create database with the argument
-         as database name to be created
+      """This is a method which is used to create database with argument
+         as a database name to be created
       """
       sql_statement="create database "+db_name
       execute(sql_statement)
 
 def drop_db(db_name):
-      """This is a method which is used in droping database with the argument
+      """This is a method which is used in droping database with argument
          as database name to be dropped
       """
       sql_statement="drop database "+db_name
       execute(sql_statement)
 
 def get_objects(raw_records, table):
-      """This is the actual method which convert records extracted form a
-         database into objects, it generally create those objects from class
+      """This is the actual method which convert records extracted from a
+         database into record objects, it generally create those objects from class
          record and assign them attributes corresponding to columns and their
-         values as extracted from the database, It returns a normal tuple
+         values as extracted from a database, It returns a normal tuple
          containing record objects
       """
       record_objects_list=[]
@@ -122,9 +124,9 @@ def get_objects(raw_records, table):
 
 def get_query_condition(data):
       """This method format a condition to be used in db query
-         during database update, it generally return a formated
+         during database update, it generally returns a formated
          string with a condition to be used after where clause in
-         db query
+         a db query
       """
       st=""
       for key in data:
@@ -145,7 +147,7 @@ def random_table():
       return all_tables[rd][0]
 
 class field(object):
-   """This is a class used to define database fields and their constrains
+   """This is a class used to define table fields and their constrains
    """
    def __init__(self,**data):
       self.model=""
@@ -183,11 +185,11 @@ class arranged_attrs(type):
         return collections.OrderedDict()
 
 class model(object, metaclass=arranged_attrs):
-   """This is a class which is used to define raw database, it's inherited by all
-      classes used in creating database tables
+   """This is a class which is used to define raw database(schema), it's inherited
+      by all classes used in creating database tables
    """
    def create(self):
-     """This is a method used to create database tables
+     """This is a method used to create database table(s)
      """
      create_statement="create table "+str(self.__class__.__name__)+"("
      sql_statement=""
@@ -206,11 +208,11 @@ class model(object, metaclass=arranged_attrs):
      execute(create_statement)
 
 class table(object):
-   """This is a class for defining a database table as object
+   """This is a class for defining database table as object
    """
    def __init__(self,table_name):
      """This is a constructor method which takes table name as
-        argument and create an object from it
+        argument and create table object from it
      """
      self.table__name__=table_name
      all_cols=execute("show columns from "+str(self.table__name__))
@@ -274,7 +276,7 @@ class table(object):
          return custom_tuple_write( get_objects(raw_records,self) )
 
    def columns_to_insert(self,data):
-      """This is a method which format colums as string to be used in insert
+      """This is a method which format colums as string to be used in insertion
          query
       """
       st="("
@@ -284,7 +286,7 @@ class table(object):
       return st
 
    def values_to_insert(self,data):
-      """This is a method which format values as string to be used in insert
+      """This is a method which format values as string to be used in insertion
          query
       """
       st="("
@@ -307,9 +309,9 @@ class table(object):
       return st
 
    def insert(self,*values,**data):
-      """This is a method which is used to insert records into a database, with
+      """This is a method which is used to insert records into a database table, with
          specified arguments as colums and their corresponding values to insert
-         into a database, It generally return a record which has been inserted
+         into a database, It generally returns a record which has been inserted
          into your database
       """
       if len(values)==0 and len(data) > 0:
@@ -327,13 +329,12 @@ class table(object):
           for prk in self.primary__keys__:
              position=list(self.table__columns__.keys()).index(prk)
              pri_key_with_val.update({prk:values[position]})
-
       return self.find(**pri_key_with_val)
 
    def join(self,table2,join_type='inner'):
      """This is a method which is used in joining database tables with first
-        arguments as table to join to, and second argument as join type which
-        is inner by default
+        arguments as table name to join to, and second argument as join type
+        which is inner by default
      """
      table1=self
      table2=table(table2)
@@ -361,7 +362,7 @@ class joined_tables(object):
 
     def on(self,*data):
       """This is a method which does the actual joining and return records according
-         to the conditions specified in join condition
+         to the conditions specified through argument
       """
       if len(data)==3:
         col1, op, col2=data[0], data[0], data[0]
@@ -375,8 +376,8 @@ class joined_tables(object):
 
     def onwhere(self,on_cond,*data):
          """This is a method which is used to query and return records from a table
-            arose as a result of joining two tables, with arguments as 'ON' condition and
-            'WHERE' condition
+            formed as a result of joining two tables, with first argument as 'ON' condition and
+            second argument as 'WHERE' condition
          """
          sql_statement=""
          if len(data)==3:
@@ -393,7 +394,7 @@ class joined_tables(object):
 class record_objects(object):
    """This is a class for defining records as objects,
       It generally produce objects which corresponds to
-      records extracted from a database
+      records extracted from a certain database table
    """
    def __init__(self, table):
       """This is a constructor which initializes record object with import parameters
@@ -405,8 +406,8 @@ class record_objects(object):
 
    def get_query_values(self, data):
       """This method format values to be filled to a database
-         during database record insertions, it generally return
-         a formated string with values to be inserted in db
+         during record insertions, it generally return a formated
+         string with values to be inserted in a db table
       """
       st=""
       for key in data:
@@ -419,7 +420,7 @@ class record_objects(object):
 
    def update(self, **data):
       """This is the actual method for updating a specific record
-         in a database with arguments as columns and their corresponding
+         in a database with arguments as column names and their corresponding
          values for the record
       """
       values=get_query_condition(data)
@@ -436,9 +437,9 @@ class record_objects(object):
       execute(sql_statement)
 
 class custom_tuple_read(tuple):
-   """This is a class for converting a normal tuple to a custom tuple
-      with some import methods like update, delete etc, all for different
-      records manipulations
+   """This is a class for converting a normal tuple into a custom tuple
+      which has some import methods like count, get etc, for record
+      manipulations
    """
 
    def count(self):
@@ -447,13 +448,15 @@ class custom_tuple_read(tuple):
      return len(self)
 
    def get_all_colums(self,col_name):
-     """This is a method for counting records
+     """This returns all columns in a given record
      """
      for record in self:
        yield getattr(record, col_name)
 
    def get(self,col_name):
-     """This is a method for counting records
+     """This is a method for extracting values in a specified column,
+        it takes string argument as column name from which values are
+        suppossed to be extracted
      """
      col_vals=tuple(self.get_all_colums(col_name))
      return  col_vals
@@ -468,19 +471,21 @@ class custom_tuple_read(tuple):
         raise Exception("There is more than one records")
 
 class custom_tuple_write(custom_tuple_read):
-   """This is a class for converting a normal tuple to a custom tuple
-      with some import methods like update, delete etc, all for different
-      records manipulations
+   """This is a class for converting a normal tuple into a custom tuple
+      which has some import methods like update, delete etc, for record
+      manipulations
    """
    def update(self,**data):
-      """This is a method helper for updating specific records with inputs to
-         the database as specified arguments
+      """This is a method helper for updating a group of specific records
+         in a database with arguments as column names and their corresponding
+         values for the record
       """
       for record in self:
          record.update(**data)
 
    def delete(self):
-      """This is a method helper for deleting specific records in a database
+      """This is a method helper for deleting a group of specific records in a
+         database
       """
       for record in self:
          record.delete()

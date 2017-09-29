@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
   name='dorm',
-  version='0.1',
+  version='0.2',
   description='Database Object Relational Mapping tool',
   author='Yezy Ilomo',
   author_email='yezileliilomo@hotmail.com',

@@ -146,21 +146,19 @@ This is a simple user documentation, illustrating how to use dorm tool, dorm API
 
       db.table_name().where('Reg_No = "2015-05-033"').ensure_one().Course  etc.
 
-8.sql(query, table):
+8.execute(sql_statement):
 
       This is a method which allows you to execute normal SQL statements without
 
       abstraction, this is used in case you want to do operation that is not supported
 
-      by the API. This method accept two arguments which are, the sql statement
+      by the API. This method accept single arguments which is, the sql statement
 
-      to be executed and table name involved in a query, and it's called as
+      to be executed, and it's called as
 
-      db.sql('your sql statement', 'table_name')
+      db.execute('your sql statement')
 
-      for example db.sql('select * from Student where age>18', 'Student')
-
-      Note table_name should be equal to the one in your query statement
+      for example db.execute('select * from Student where age>18')
 
 9.create():
 
