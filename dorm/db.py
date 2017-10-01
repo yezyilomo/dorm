@@ -215,6 +215,7 @@ class table(object):
         argument and create table object from it
      """
      self.table__name__=table_name
+     self.selected__columns__="*"
      all_cols=execute("show columns from "+str(self.table__name__))
      self.table__columns__=collections.OrderedDict()
      for col_name in all_cols:
@@ -224,14 +225,53 @@ class table(object):
      for key in keys:
         self.primary__keys__.update({str(key[4]): str(self.table__columns__[key[4]])})
 
+   def select(self, *columns, **kwargs ):
+          """This is a method which is used to select several columns to be included
+             in SQL query, it accept a number of arguments which are column names passed
+             as strings, if you want to select all columns except few columns you can pass
+             all_except=['column1', 'column2', ...] as kwarg, also by default distinct
+             property is disabled, if you want to enable it you can pass distinct=True as
+             kwarg
+          """
+          partial_table=table(self.table__name__)
+          columns_copy=partial_table.table__columns__.copy()
+          if 'distinct' not in kwargs:
+               kwargs.update({'distinct': False})
+          if len(columns)>0 and "*" not in columns and len(kwargs)==1:
+              partial_table.selected__columns__=", ".join(columns)
+              for column in columns_copy:
+                  if column not in columns:
+                      partial_table.table__columns__.pop(column)
+              if kwargs['distinct']:
+                 partial_table.selected__columns__="distinct "+partial_table.selected__columns__
+          elif len(kwargs)>1 and len(columns)==0:
+              for column in columns_copy:
+                  if column in kwargs['all_except']:
+                      partial_table.table__columns__.pop(column)
+              partial_table.selected__columns__=", ".join( tuple(partial_table.table__columns__.keys()) )
+              if kwargs['distinct']:
+                 partial_table.selected__columns__="distinct "+partial_table.selected__columns__
+          elif "*" in columns and len(columns)==1 and len(kwargs)==0:
+               pass
+          else:
+               raise Exception("Invalid arguments")
+          return partial_table
+
    def get(self, col='no_column'):
          """This is a method which returns all records from a database as
             a custom tuple of objects of record
          """
-         raw_records=execute("select * from "+str(self.table__name__))
+         raw_records=execute("select " +self.selected__columns__+ " from "+str(self.table__name__))
          if col != 'no_column':
            return custom_tuple_read(get_objects(raw_records,self)).get(col)
          return custom_tuple_write(get_objects(raw_records,self))
+
+   def getdistinct(self,col_name):
+     """This is a method for extracting distinct values in a specified column,
+        it takes string argument as column name from which values are
+        suppossed to be extracted
+     """
+     return tuple(set(self.get(col_name)))
 
    def find(self,**pri_key_with_val):
         """This is a method for finding a single specific record by using it's
@@ -264,26 +304,16 @@ class table(object):
             if isinstance(val, list):
                val=tuple(val)
             if isinstance(val,str):
-              sql_statement=''.join(["select * from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ","'",val,"'"])
+              sql_statement=''.join(["select " +self.selected__columns__+ " from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ","'",val,"'"])
             else:
-              sql_statement=''.join(["select * from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ",str(val)])
+              sql_statement=''.join(["select " +self.selected__columns__+ " from ",str(self.table__name__)," where ",str(col)," ",str(expr)," ",str(val)])
          elif len(data)==1 :
             cond=data[0]
-            sql_statement=''.join(["select * from ",str(self.table__name__)," where ",cond])
+            sql_statement=''.join(["select " +self.selected__columns__+ " from ",str(self.table__name__)," where ",cond])
          else:
             raise Exception("Invalid agruments")
          raw_records=execute(sql_statement)
          return custom_tuple_write( get_objects(raw_records,self) )
-
-   def columns_to_insert(self,data):
-      """This is a method which format colums as string to be used in insertion
-         query
-      """
-      st="("
-      for col in data:
-            st=st+col+","
-      st=st[:len(st)-1]+")"
-      return st
 
    def values_to_insert(self,data):
       """This is a method which format values as string to be used in insertion
@@ -292,30 +322,27 @@ class table(object):
       st="("
       if isinstance(data, dict):
           for val in data:
-             if "char" in self.table__columns__[val] or "text" in self.table__columns__[val] or "date" in self.table__columns__[val] or "time" in self.table__columns__[val]:
+             if isinstance(data[val],str):
                 st=st+"'"+data[val]+"',"
              else :
                 st=st+str(data[val])+","
       elif isinstance(data, tuple):
-          i=0
           for val in data:
-             col_type=list(self.table__columns__.values())[i]
-             if "char" in col_type or "text" in col_type or "date" in col_type or "time" in col_type:
+             if isinstance(val,str):
                 st=st+"'"+val+"',"
              else :
                 st=st+str(val)+","
-             i=i+1
       st=st[:len(st)-1]+")"
       return st
 
    def insert(self,*values,**data):
       """This is a method which is used to insert records into a database table, with
-         specified arguments as colums and their corresponding values to insert
+         specified arguments as columns and their corresponding values to insert
          into a database, It generally returns a record which has been inserted
          into your database
       """
       if len(values)==0 and len(data) > 0:
-         sql_statement="insert into "+ str(self.table__name__) +" "+self.columns_to_insert(data)+ " values "+self.values_to_insert(data)
+         sql_statement="insert into "+ str(self.table__name__) +" ("  +", ".join(list(data))+  ") values "+self.values_to_insert(data)
       elif  len(data)==0 and len(values) == len(self.table__columns__):
          sql_statement="insert into "+ str(self.table__name__) + " values "+self.values_to_insert(values)
       else:
@@ -358,6 +385,7 @@ class joined_tables(object):
       table2_primary_keys=[ ( table2.table__name__+'_'+key,  table2.primary__keys__[key] ) for  key  in  table2.primary__keys__ ]
       primary_lst=table1_primary_keys+table2_primary_keys
       self.table__columns__=collections.OrderedDict(joined_table_columns)
+      self.selected__columns__="*"
       self.primary__keys__=collections.OrderedDict(primary_lst)
 
     def on(self,*data):
@@ -366,9 +394,9 @@ class joined_tables(object):
       """
       if len(data)==3:
         col1, op, col2=data[0], data[0], data[0]
-        sql_statement="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +col1+ op + col2
+        sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +col1+ op + col2
       elif len(data)==1:
-        sql_statement="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +data[0]
+        sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+ " ON " +data[0]
       else:
         raise Exception("Invalid arguments")
       raw_records=execute(sql_statement)
@@ -382,10 +410,10 @@ class joined_tables(object):
          sql_statement=""
          if len(data)==3:
             col,expr,val=data[0],data[1],data[2]
-            sql_statement="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+ " where "+str(col)+" "+str(expr)+" "+str(val)
+            sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+ " where "+str(col)+" "+str(expr)+" "+str(val)
          elif len(data)==1:
             cond=data[0]
-            sql_statement="SELECT * FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+" where "+cond
+            sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+on_cond+" where "+cond
          else:
             raise Exception("Invalid agruments")
          raw_records=execute(sql_statement)
@@ -447,8 +475,8 @@ class custom_tuple_read(tuple):
      """
      return len(self)
 
-   def get_all_colums(self,col_name):
-     """This returns all columns in a given record
+   def get_column_values(self,col_name):
+     """This returns all values in a given column
      """
      for record in self:
        yield getattr(record, col_name)
@@ -458,8 +486,15 @@ class custom_tuple_read(tuple):
         it takes string argument as column name from which values are
         suppossed to be extracted
      """
-     col_vals=tuple(self.get_all_colums(col_name))
+     col_vals=tuple(self.get_column_values(col_name))
      return  col_vals
+
+   def getdistinct(self,col_name):
+     """This is a method for extracting distinct values in a specified column,
+        it takes string argument as column name from which values are
+        suppossed to be extracted
+     """
+     return tuple(set(self.get(col_name)))
 
    def ensure_one(self):
       """This is a method for ensuring that only one record is returned and not
