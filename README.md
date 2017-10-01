@@ -235,6 +235,32 @@ This is a simple user documentation, illustrating how to use dorm tool, dorm API
 
       be hashed and it returns hashed string
 
+select(*columns, **kwargs ):
+
+      This is a method which is used to select several columns to be included
+
+      in SQL query, it accept a number of arguments which are column names passed
+
+      as strings, if you want to select all columns except few columns you can pass
+
+      all_except=['column1', 'column2', ...] as kwarg, also by default distinct
+
+      property is disabled, if you want to enable it you can pass distinct=True as
+
+      kwarg, It's called as
+
+      db.table_name().select('column1', 'column2', ...)   or with distinct property
+
+      db.table_name().select('column1', 'column2', ..., distinct=True)
+
+      if you want to use all_except property, you call it as
+
+      db.table_name().select(all_except=['column1', 'column2', ...])
+
+      again if you want to use distinct property make it as
+
+      db.table_name().select(all_except=['column1', 'column2', ...], distinct=True)
+
 
 # Table and Joined Table attributes
 
