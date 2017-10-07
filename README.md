@@ -35,7 +35,7 @@ This is a simple user documentation, illustrating how to use dorm tool, dorm API
       and it has to be called at the beginning of config.py file
 
 
-2.get(col_name):
+2.get(col_name): In context of records
 
       This is a method which returns all records from a database as
 
@@ -217,15 +217,7 @@ This is a simple user documentation, illustrating how to use dorm tool, dorm API
 
       db.table1().join(table2).on('table1.id = table2.id')
 
-12.onwhere(on_condition, where_condition):
-
-      This is a method which is used to query and return records from a table
-
-      arose as a result of joining two tables, with arguments as 'ON' condition and
-
-      'WHERE' condition, it returns a tuple of objects of record
-
-13.hash(string):
+12.hash(string):
 
       This is a method which is used to hash information(eg passwords) for
 
@@ -235,7 +227,7 @@ This is a simple user documentation, illustrating how to use dorm tool, dorm API
 
       be hashed and it returns hashed string
 
-select(*columns, **kwargs ):
+13.select(*columns, **kwargs ):
 
       This is a method which is used to select several columns to be included
 
@@ -243,32 +235,105 @@ select(*columns, **kwargs ):
 
       as strings, if you want to select all columns except few columns you can pass
 
-      all_except=['column1', 'column2', ...] as kwarg, also by default distinct
+      all_except=['column1', 'column2', ...] as kwarg, It's called as
 
-      property is disabled, if you want to enable it you can pass distinct=True as
-
-      kwarg, It's called as
-
-      db.table_name().select('column1', 'column2', ...)   or with distinct property
-
-      db.table_name().select('column1', 'column2', ..., distinct=True)
+      db.table_name().select('column1', 'column2', ...)   
 
       if you want to use all_except property, you call it as
 
       db.table_name().select(all_except=['column1', 'column2', ...])
 
-      again if you want to use distinct property make it as
+14.getdistinct(column_name):
 
-      db.table_name().select(all_except=['column1', 'column2', ...], distinct=True)
+      This is a method for extracting distinct values in a specified column,
 
+      it takes string argument as column name from which distinct values are
+
+      suppossed to be extracted
+
+15.find(primary_key1='value', primary_key2='value',.....):
+
+      This is a method for finding a single specific record by using it's
+
+      primary key(s), here the argument to this method is the dict which
+
+      contains primary key(s) and it's/their corresponding value(s), this
+
+      method is called as
+
+      db.table_name.find( primary_key1='value', primary_key2='value', primary_key3='value', ..... )
+
+16.max(column_name):
+
+      This is a method for evaluating maximum value in a given column passed as
+
+      an argument to it, it's called as
+
+      db.table_name.max( column_name ).get() or with where clause as
+
+      db.table_name.max( column_name ).where( condition )
+
+      you can also do other calculations eg
+
+      db.table_name.max( '2021-birth_year' ).where( condition )
+
+17.min(column_name):
+
+      This is a method for evaluating minimum value in a given column passed as
+
+      an argument to it, it's called as
+
+      db.table_name.min( column_name ).get() or with where clause as
+
+      db.table_name.min( column_name ).where( condition )
+
+      you can also do other calculations eg
+
+      db.table_name.min( '2021-birth_year' ).where( condition )
+
+18.avg(column_name):
+
+      This is a method for evaluating average value in a given column passed as
+
+      an argument to it, it's called as
+
+      db.table_name.avg( column_name ).get() or with where clause as
+
+      db.table_name.avg( column_name ).where( condition )
+
+      you can also do other calculations eg
+
+      db.table_name.avg( '2021-birth_year' ).where( condition )        
+
+19.count(column_name):
+
+      This is a method for counting number of records in a table/result
+
+      it's called as
+
+      db.table_name.count().get() or with where clause as
+
+      db.table_name.count().where( condition )
+
+20.get(): In context of calculation
+
+      This is a method which returns a value when applied to a table of type calculation
+
+      Note: only max(),  min(), avg() and count() return a table of type calculation,
+
+      Therefore when this method is applied on them it returns a value depending on
+
+      what it's calculated, eg to calculate the average age of all student in table
+
+      student you may do it as
+
+      db.student().avg('age').get()  this will return average value
 
 # Table and Joined Table attributes
 
       A table has several attributes which might help in data manipulation which are
 
-      1. table__columns__ this store all table columns and their corresponding data types
-
-         as a dictionary in form of { column_name: data_type }
+      1. table__columns__ this store all table columns as a list,
 
          You can access table__columns__ attribute as
 
@@ -281,14 +346,21 @@ select(*columns, **kwargs ):
 
          db.table_name().table__columns__
 
+      3. table__type__ this store a table type ie actual or partial or calculation
 
-      3. primary__keys__ this store table primary keys and their corresponding data types
+         You can access it as
 
-         as a dictionary inform of  { primary_key_name: data_type }
+         db.table_name().table__type__   
+
+      4. primary__keys__ this store table primary keys as a list
 
          You can access primary__keys__  attribute as
 
          db.table_name().primary__keys__
+
+      5. selected__columns__ this store columns used in select statement,
+
+         and it's '*'/all columns by default unless it's changed by user
 
 # Record attributes
 
