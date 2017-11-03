@@ -17,7 +17,6 @@ mysql.init_app(app)
 db__name__=None
 db__tables__=[]
 
-
 def _execute(sql_statement):
      """This is a method for executing sql statements given as string argument
         This is for internal use only
@@ -75,7 +74,7 @@ def configure(**data):
 
 def hash(string):
      """This is a method which is used to hash information(eg passwords) for
-        security purpose, it uses sha3 algorithm to hash, and  it adds some characters
+        security purpose, it uses sha3 algorithm to hash, and  it add some characters
         to hashed string for increasing security
      """
      hashed=sha3.sha3_512(string).hexdigest().decode("utf-8")
@@ -132,16 +131,16 @@ def get_objects(raw_records, columns, table):
          containing record objects
       """
       columns=list(columns)
-      for column in table.table__columns__:    ##check if there are colums with the same name
+      for column in table.table__columns__:    ##check if there are colums with the same name for joined tables
            splitted_column=column.split('.')
            if '.' in column and len( splitted_column )>1:
-                columns[ columns.index( splitted_column[1] ) ]=column
+                columns[ columns.index( splitted_column[1] ) ]=column ##update column with the format 'table.column' to avoid name conflict
 
       record_objects_list=[]
       for record in raw_records:
          rec_object=record_objects(table)
          for col, value in zip(columns, record):
-            if "." in col:  ## if the column is in form of table.column make it accessible by using the same format( table.column )##########
+            if "." in col:  ##if the column is in a form of table.column make it accessible by using the same format( table.column )########
                splitted_col=col.split('.')
                setattr( rec_object, str(splitted_col[0]), type('name', (object, ), {splitted_col[1]: value}) )  #############################
             setattr( rec_object, str(col), value )
@@ -296,7 +295,7 @@ class partial_table(object):
               return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
          return custom_tuple_write(get_objects(raw_records.fetch, raw_records.columns,self))
 
-   def getdistinct(self,col_name):
+   def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
         it takes string argument as column name from which values are
         suppossed to be extracted
@@ -311,7 +310,7 @@ class partial_table(object):
         """
         primary_keys=pri_key_with_val.keys()
         if set(pri_key_with_val) != set(self.primary__keys__):    #if user provide a non-primary key argument
-            raise Exception("You hava passed non-primary key as argument(s)")
+            raise Exception("You hava passed non-primary key argument(s)")
 
         list_of_strings=[]
         for key in pri_key_with_val:
@@ -424,8 +423,17 @@ class actual_table(object):
              as strings, if you want to select all columns except few columns you can pass
              all_except=['column1', 'column2', ...] as kwarg
           """
-
           partial_tb=partial_table(self, *columns, **kwargs) ##Here we use partial_table because not all columns are going to be included in select statement
+          return partial_tb
+
+   def selectd(self, *columns, **kwargs):
+          """This is a method which is used to select several distinct columns to be included
+             in SQL query, it accept a number of arguments which are column names passed
+             as strings, if you want to select all columns except few columns you can pass
+             all_except=['column1', 'column2', ...] as kwarg
+          """
+          partial_tb=partial_table(self, *columns, **kwargs) ##Here we use partial_table because not all columns are going to be included in select statement
+          partial_tb.selected__columns__="distinct "+partial_tb.selected__columns__
           return partial_tb
 
    def max(self,column):
@@ -461,7 +469,7 @@ class actual_table(object):
               return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
          return custom_tuple_write(get_objects(raw_records.fetch, raw_records.columns,self))
 
-   def getdistinct(self,col_name):
+   def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
         it takes string argument as column name from which values are
         suppossed to be extracted
@@ -524,21 +532,21 @@ class actual_table(object):
       """This is a method which format values as string to be used in insertion
          query
       """
-      st="("
+      values="("
       if isinstance(data, dict):
-          for val in data:
-             if isinstance(data[val],str):
-                st=st+"'"+data[val]+"',"
+          for key, value in data.items():
+             if isinstance(value,str):
+                values=values+"'"+value+"',"
              else :
-                st=st+str(data[val])+","
+                values=values+str(value)+","
       elif isinstance(data, tuple):
-          for val in data:
-             if isinstance(val,str):
-                st=st+"'"+val+"',"
+          for value in data.keys():
+             if isinstance(value,str):
+                values=values+"'"+value+"',"
              else :
-                st=st+str(val)+","
-      st=st[:len(st)-1]+")"
-      return st
+                values=values+str(value)+","
+      values=values[:len(values)-1]+")"
+      return values
 
    def insert(self,*values,**data):
       """This is a method which is used to insert records into a database table, with
@@ -547,21 +555,14 @@ class actual_table(object):
          into your database
       """
       if len(values)==0 and len(data) > 0:
-         sql_statement="insert into "+ str(self.table__name__) +" ("  +", ".join(list(data))+  ") values "+self.values_to_insert(data)
+         sql_statement="insert into "+ str(self.table__name__) +" ("  +", ".join(list(data.keys()))+  ") values "+self.values_to_insert(data)
       elif  len(data)==0 and len(values) == len(self.table__columns__):
          sql_statement="insert into "+ str(self.table__name__) + " values "+self.values_to_insert(values)
+      elif  len(data)==0 and len(values) == 1 and isinstance(values[0], dict):
+         sql_statement="insert into "+ str(self.table__name__) +" ("  +", ".join(list(values[0].keys()))+  ") values "+self.values_to_insert(values[0])
       else:
          raise Exception("Invalid arguments to 'insert' function")
       _execute(sql_statement)
-      pri_key_with_val=collections.OrderedDict()
-      if len(values)==0 and len(data) > 0:
-           for prk in self.primary__keys__:
-              pri_key_with_val.update({prk:data[prk]})
-      else:
-          for prk in self.primary__keys__:
-             position=self.table__columns__.index(prk)
-             pri_key_with_val.update({prk:values[position]})
-      return self.find(**pri_key_with_val)
 
    def join(self,table2,join_type='inner'):
      """This is a method which is used in joining database tables with first
@@ -611,7 +612,6 @@ class joined_tables(object):
         self.on__condition__=data[0]
       else:
         raise Exception("Invalid arguments")
-      print(self.on__condition__)
       return self
 
     def get(self, column=None):
@@ -621,7 +621,6 @@ class joined_tables(object):
             as a string argument(column name)
          """
          sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+self.on__condition__
-         print(sql_statement)
          raw_records=_execute(sql_statement)
          if self.table__type__=="calculation":
               return raw_records.fetch[0][0]
@@ -630,7 +629,7 @@ class joined_tables(object):
              return tuple( [ getattr(record, column) for record in rec_objects ] )
          return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns, self))
 
-    def getdistinct(self,col_name):
+    def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
         it takes string argument as column name from which values are
         suppossed to be extracted
@@ -656,7 +655,6 @@ class joined_tables(object):
             sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+self.on__condition__+" where "+cond
          else:
             raise Exception("Invalid agruments")
-         print(sql_statement)
          raw_records=_execute(sql_statement)
          if self.table__type__=="calculation":
               return raw_records.fetch[0][0]
@@ -703,6 +701,16 @@ class joined_tables(object):
           else:
                raise Exception("Invalid arguments")
           return tb_copy
+
+    def selectd(self, *colums, **kwargs):
+          """This is a method which is used to select several distinct columns to be included
+             in SQL query, it accept a number of arguments which are column names passed
+             as strings, if you want to select all columns except few columns you can pass
+             all_except=['column1', 'column2', ...] as kwarg
+          """
+          partial_tb=select(*colums,**kwargs) ##Here we use partial_table because not all columns are going to be included in select statement
+          partial_tb.selected__columns__="distinct "+partial_tb.selected__columns__
+          return partial_tb
 
     def max(self,column):
         tb_copy=copy.deepcopy(self)
@@ -787,14 +795,19 @@ class record_objects(object):
       formated_str=" and ".join( list_of_strings )
       return formated_str
 
-   def update(self, **data):
+   def update(self, *update_values, **data):
       """This is the actual method for updating a specific record in a database
          with arguments as column names and their corresponding values for the
          record
       """
-      values=get_query_condition(data)
-      condition=self.get_query_values(self.primary__keys__)
-      sql_statement="update "+ str(self.table__name__)+" set "+values+" where "+ condition
+      if len(update_values)==0 and len(data)>0:
+          values=get_query_condition(data)
+          condition=self.get_query_values(self.primary__keys__)
+          sql_statement="update "+ str(self.table__name__)+" set "+values+" where "+ condition
+      elif len(update_values)==1 and isinstance(update_values[0], dict) and len(data)==0:
+          values=get_query_condition(update_values[0])
+          condition=self.get_query_values(self.primary__keys__)
+          sql_statement="update "+ str(self.table__name__)+" set "+values+" where "+ condition
       _execute(sql_statement)
 
    def delete(self):
@@ -829,7 +842,7 @@ class custom_tuple_read(tuple):
      col_vals=tuple(self.get_column_values(col_name))
      return  col_vals
 
-   def getdistinct(self,col_name):
+   def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
         it takes string argument as column name from which values are
         suppossed to be extracted
@@ -850,13 +863,13 @@ class custom_tuple_write(custom_tuple_read):
       which has some import methods like update, delete etc, for record
       manipulations
    """
-   def update(self,**data):
+   def update(self, *update_values, **data):
       """This is a method helper for updating a group of specific records
          in a database with arguments as column names and their corresponding
          values for the record
       """
       for record in self:
-         record.update(**data)
+         record.update(*update_values, **data)
 
    def delete(self):
       """This is a method helper for deleting a group of specific records in a
