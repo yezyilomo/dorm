@@ -2,7 +2,7 @@ from flask import Flask
 from flaskext.mysql import MySQL
 import random
 import collections
-import sha3
+import hashlib
 import copy
 
 ## Database configuration information ###################################
@@ -77,7 +77,7 @@ def hash(string):
         security purpose, it uses sha3 algorithm to hash, and  it add some characters
         to hashed string for increasing security
      """
-     hashed=sha3.sha3_512(string).hexdigest().decode("utf-8")
+     hashed=hashlib.sha3_512(string.encode()).hexdigest()
      additional_security="^dorm@ilo@yezy^#$%!flaskapp^"
      return hashed+additional_security
 
@@ -136,16 +136,16 @@ def get_objects(raw_records, columns, table):
            if '.' in column and len( splitted_column )>1:
                 columns[ columns.index( splitted_column[1] ) ]=column ##update column with the format 'table.column' to avoid name conflict
 
-      record_objects_list=[]
+      Record_list=[]
       for record in raw_records:
-         rec_object=record_objects(table)
+         rec_object=Record(table)
          for col, value in zip(columns, record):
             if "." in col:  ##if the column is in a form of table.column make it accessible by using the same format( table.column )########
                splitted_col=col.split('.')
                setattr( rec_object, str(splitted_col[0]), type('name', (object, ), {splitted_col[1]: value}) )  #############################
             setattr( rec_object, str(col), value )
-         record_objects_list.append( rec_object )
-      return tuple(record_objects_list)
+         Record_list.append( rec_object )
+      return tuple(Record_list)
 
 def get_query_condition(data):
       """This method format a condition to be used in db query during database
@@ -170,6 +170,13 @@ def random_table():
       all_tables=_execute(sql_statement).fetch
       rd=random.randint(0,len(all_tables)-1)
       return all_tables[rd][0]
+
+def list_tables():
+      """This is a method which return all tables in a database as list
+      """
+      sql_statement="show tables"
+      all_tables=_execute(sql_statement).fetch
+      return list(all_tables)
 
 class field(object):
    """This is a class used to define table fields and their constrains
@@ -292,8 +299,8 @@ class partial_table(object):
          """
          raw_records=_execute("select " +self.selected__columns__+ " from "+str(self.table__name__))
          if col is not None:
-              return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
-         return custom_tuple_write(get_objects(raw_records.fetch, raw_records.columns,self))
+              return read_only_records(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
+         return read_write_records(get_objects(raw_records.fetch, raw_records.columns,self))
 
    def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
@@ -350,28 +357,28 @@ class partial_table(object):
          else:
             raise Exception("Invalid agruments")
          raw_records=_execute(sql_statement)
-         return custom_tuple_write( get_objects(raw_records.fetch, raw_records.columns, self) )
+         return read_write_records( get_objects(raw_records.fetch, raw_records.columns, self) )
 
-class calculation_table(object):  ##this is a class for calculations, it's meant to separate calculations from normal queries
-   """This is a class for defining a calculation database table as object, this
-      table is only meant for calculations
+class computational_table(object):  ##this is a class for computations, it's meant to separate computations from normal queries
+   """This is a class for defining a computation database table as object, this
+      table is only meant for computations, it's meant to separate computations from normal queries
    """
    def __init__(self,table, operation,column):
      """This is a constructor method which takes table name as
         argument and create table object from it
      """
      self.table__name__=table.table__name__
-     self.table__type__="calculation"
+     self.table__type__="computation"
      self.selected__columns__=selected__columns__=operation+"("+column+")"
 
-   def get(self):  ## get for calculations
+   def get(self):  ## get for computations
          """This is a method which returns all records from a database as
             a custom tuple of objects of record
          """
          raw_records=_execute("select " +self.selected__columns__+ " from "+str(self.table__name__))
          return raw_records.fetch[0][0]
 
-   def where(self,*data):  ## where for calculations
+   def where(self,*data):  ## where for computations
          """This is a method which is used to query and return records from a
             database as a custom tuple of objects of record, the criteria used
             to query records is specified as argument(s), This method accept two
@@ -437,23 +444,23 @@ class actual_table(object):
           return partial_tb
 
    def max(self,column):
-        calc_table=calculation_table(self,'max',column)
+        calc_table=computational_table(self,'max',column)
         return calc_table
 
    def min(self,column):
-        calc_table=calculation_table(self,'min',column)
+        calc_table=computational_table(self,'min',column)
         return calc_table
 
    def sum(self,column):
-        calc_table=calculation_table(self,'sum',column)
+        calc_table=computational_table(self,'sum',column)
         return calc_table
 
    def avg(self,column):
-        calc_table=calculation_table(self,'avg',column)
+        calc_table=computational_table(self,'avg',column)
         return calc_table
 
    def count(self,column="*"):
-        calc_table=calculation_table(self,'count',column)
+        calc_table=computational_table(self,'count',column)
         return calc_table
 
    def get(self, col='no_column'):
@@ -463,11 +470,11 @@ class actual_table(object):
             as a string argument(column name)
          """
          raw_records=_execute("select " +self.selected__columns__+ " from "+str(self.table__name__))
-         if self.table__type__=="calculation":
+         if self.table__type__=="computation":
               return raw_records.fetch[0][0]
          if col != 'no_column':
-              return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
-         return custom_tuple_write(get_objects(raw_records.fetch, raw_records.columns,self))
+              return read_only_records(get_objects(raw_records.fetch, raw_records.columns ,self)).get(col)
+         return read_write_records(get_objects(raw_records.fetch, raw_records.columns,self))
 
    def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
@@ -524,9 +531,9 @@ class actual_table(object):
          else:
             raise Exception("Invalid agruments")
          raw_records=_execute(sql_statement)
-         if self.table__type__=="calculation":
+         if self.table__type__=="computation":
               return raw_records.fetch[0][0]
-         return custom_tuple_write( get_objects(raw_records.fetch, raw_records.columns, self) )
+         return read_write_records( get_objects(raw_records.fetch, raw_records.columns, self) )
 
    def values_to_insert(self,data):
       """This is a method which format values as string to be used in insertion
@@ -540,7 +547,7 @@ class actual_table(object):
              else :
                 values=values+str(value)+","
       elif isinstance(data, tuple):
-          for value in data.keys():
+          for value in data:
              if isinstance(value,str):
                 values=values+"'"+value+"',"
              else :
@@ -567,15 +574,15 @@ class actual_table(object):
    def join(self,table2,join_type='inner'):
      """This is a method which is used in joining database tables with first
         arguments as table name to join to, and second argument as join type
-        which is inner by default, it returns an instance of joined_tables,
+        which is inner by default, it returns an instance of FlatTable,
         where different operations can be done
      """
      table1=self
      table2=actual_table(table2)
-     whole_table=joined_tables(join_type,table1,table2)
+     whole_table=FlatTable(join_type,table1,table2)
      return whole_table
 
-class joined_tables(object):
+class FlatTable(object):
     """This is a class which defines a table formed as a result of joining two
        tables
     """
@@ -588,18 +595,18 @@ class joined_tables(object):
       self.join__type__=join_type
       self.on__condition__=""
       self.selected__columns__="*"
-      joined_table_columns=table1.table__columns__ + table2.table__columns__
-      joined_table_primary_keys=table1.primary__keys__ + table2.primary__keys__
+      flat_table_columns=table1.table__columns__ + table2.table__columns__
+      flat_table_primary_keys=table1.primary__keys__ + table2.primary__keys__
 
-      duplicate_colums=[key for key in set(joined_table_columns) if joined_table_columns.count(key)>1] ##Identify columns with name collision and assign them full name ie table_name.column_name
+      duplicate_colums=[key for key in set(flat_table_columns) if flat_table_columns.count(key)>1] ##Identify columns with name collision and assign them full name ie table_name.column_name
       for col in duplicate_colums:
-           if col in joined_table_primary_keys and joined_table_primary_keys.count(col)>1:
-                joined_table_primary_keys[joined_table_primary_keys.index(col)]=table1.table__name__+'.'+col
-                joined_table_primary_keys[joined_table_primary_keys.index(col)]=table1.table__name__+'.'+col
-           joined_table_columns[joined_table_columns.index(col)]=table1.table__name__+'.'+col
-           joined_table_columns[joined_table_columns.index(col)]=table2.table__name__+'.'+col
-      self.table__columns__=joined_table_columns
-      self.primary__keys__=joined_table_primary_keys
+           if col in flat_table_primary_keys and flat_table_primary_keys.count(col)>1:
+                flat_table_primary_keys[flat_table_primary_keys.index(col)]=table1.table__name__+'.'+col
+                flat_table_primary_keys[flat_table_primary_keys.index(col)]=table1.table__name__+'.'+col
+           flat_table_columns[flat_table_columns.index(col)]=table1.table__name__+'.'+col
+           flat_table_columns[flat_table_columns.index(col)]=table2.table__name__+'.'+col
+      self.table__columns__=flat_table_columns
+      self.primary__keys__=flat_table_primary_keys
 
     def on(self,*data):
       """This is a method which specify on condition to be used in joining
@@ -622,12 +629,12 @@ class joined_tables(object):
          """
          sql_statement="SELECT " +self.selected__columns__+ " FROM " +self.tables__[0]+ " " +self.join__type__+ " JOIN " +self.tables__[1]+" on "+self.on__condition__
          raw_records=_execute(sql_statement)
-         if self.table__type__=="calculation":
+         if self.table__type__=="computation":
               return raw_records.fetch[0][0]
          elif column is not None:
              rec_objects=get_objects(raw_records.fetch, raw_records.columns, self)
              return tuple( [ getattr(record, column) for record in rec_objects ] )
-         return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns, self))
+         return read_only_records(get_objects(raw_records.fetch, raw_records.columns, self))
 
     def getd(self,col_name):
      """This is a method for extracting distinct values in a specified column,
@@ -656,9 +663,9 @@ class joined_tables(object):
          else:
             raise Exception("Invalid agruments")
          raw_records=_execute(sql_statement)
-         if self.table__type__=="calculation":
+         if self.table__type__=="computation":
               return raw_records.fetch[0][0]
-         return custom_tuple_read(get_objects(raw_records.fetch, raw_records.columns, self))
+         return read_only_records(get_objects(raw_records.fetch, raw_records.columns, self))
 
     def select(self, *columns, **kwargs):
           """This is a method which is used to select several columns to be included
@@ -715,31 +722,31 @@ class joined_tables(object):
     def max(self,column):
         tb_copy=copy.deepcopy(self)
         tb_copy.selected__columns__='max('+column+')'
-        tb_copy.table__type__="calculation"
+        tb_copy.table__type__="computation"
         return tb_copy
 
     def min(self,column):
         tb_copy=copy.deepcopy(self)
         tb_copy.selected__columns__='min('+column+')'
-        tb_copy.table__type__="calculation"
+        tb_copy.table__type__="computation"
         return tb_copy
 
     def sum(self,column):
         tb_copy=copy.deepcopy(self)
         tb_copy.selected__columns__='sum('+column+')'
-        tb_copy.table__type__="calculation"
+        tb_copy.table__type__="computation"
         return tb_copy
 
     def avg(self,column):
         tb_copy=copy.deepcopy(self)
         tb_copy.selected__columns__='avg('+column+')'
-        tb_copy.table__type__="calculation"
+        tb_copy.table__type__="computation"
         return tb_copy
 
     def count(self,column="*"):
         tb_copy=copy.deepcopy(self)
         tb_copy.selected__columns__='count('+column+')'
-        tb_copy.table__type__="calculation"
+        tb_copy.table__type__="computation"
         return tb_copy
 
     def find(self, **pri_key_with_val):
@@ -767,7 +774,7 @@ class joined_tables(object):
         else:
           return record[0]
 
-class record_objects(object):
+class Record(object):
    """This is a class for defining records as objects,
       It generally produce objects which corresponds to
       records extracted from a certain database table
@@ -818,7 +825,7 @@ class record_objects(object):
       sql_statement="delete from "+ str(self.table__name__)+" where "+ condition
       _execute(sql_statement)
 
-class custom_tuple_read(tuple):
+class read_only_records(tuple):
    """This is a class for converting a normal tuple into a custom tuple
       which has some import methods like count, get etc, for record
       manipulations
@@ -858,7 +865,7 @@ class custom_tuple_read(tuple):
       else:
         raise Exception("There is more than one records")
 
-class custom_tuple_write(custom_tuple_read):
+class read_write_records(read_only_records):
    """This is a class for converting a normal tuple into a custom tuple
       which has some import methods like update, delete etc, for record
       manipulations
